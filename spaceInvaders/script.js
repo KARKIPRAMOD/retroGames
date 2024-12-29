@@ -58,12 +58,14 @@ class Projectile{
 class Enemy{
     constructor(game, positionX, positionY){
         this.game = game; 
-         this.width= this.game.enemySize;
-         this.height= this.game.enemySize;
-         this.x =0 ;
-         this.y= 0;
-         this.positionX = positionX;
-         this.positionY = positionY;
+        this.width= this.game.enemySize;
+        this.height= this.game.enemySize;
+        this.x =0 ;
+        this.y= 0;
+        this.positionX = positionX;
+        this.positionY = positionY;
+        this.markedForDeletion = false;
+
     }    
     draw(context){
         context.strokeRect(this.x, this.y, this.width,this.height);
@@ -71,10 +73,14 @@ class Enemy{
     update(x, y){
         this.x = x + this.positionX;
         this.y = y + this.positionY;
+        //check collision
+        this.game.ProjectilePool.forEach(projectile =>{
+           if(!projectile.free && this.game.checkCollision(this,projectile)){
+                this.markedForDeletion = true;
+                projectile.reset();
+           }
+        })
     }
-    
-
-
 }
 class Wave{
     constructor(game){
@@ -101,9 +107,14 @@ class Wave{
             enemy.update(this.x, this.y);
             enemy.draw(context);
         })
+        console.log("Before filter:", this.enemies.length);
+
+        this.enemies = this.enemies.filter(enemy => !enemy.markedForDeletion);
+        console.log("After filter:", this.enemies.length);
 
     }
-    create(){
+    create() {
+        console.log("Creating enemies...");
         for (let y = 0; y < this.game.rows; y++) {
             for (let x = 0; x < this.game.columns; x++) {
                 let enemyX = x * this.game.enemySize;
@@ -111,7 +122,10 @@ class Wave{
                 this.enemies.push(new Enemy(this.game, enemyX, enemyY));
             }
         }
+        console.log("Enemies created:", this.enemies.length); // Log after creation
     }
+    
+    
 }
 
 class Game{ 
@@ -128,8 +142,8 @@ class Game{
 
         this.createProjectiles();
 
-        this.columns = 2;
-        this.rows = 3;
+        this.columns = 3;
+        this.rows = 2;
 
         this.enemySize = 60;
         this.waves = [];
@@ -174,6 +188,18 @@ class Game{
             if(this.ProjectilePool[i].free) return this.ProjectilePool[i];  
         } 
     }
+    //collision detection
+    checkCollision(a, b){
+        return (
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y
+        );
+        
+    }
+
+
 }
 
 
